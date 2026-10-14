@@ -25,6 +25,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+# The skill folder may be a tracked, hashed tree: keep __pycache__ out of it.
+sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from elevenlabs import post  # noqa: E402
 
