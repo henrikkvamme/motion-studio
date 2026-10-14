@@ -37,6 +37,8 @@ Work in the current directory. If `./brand` does not exist, propose a look at th
 
 Turn the topic into a finished motion design video of the given length for the audience. The viewer leaves with one idea: the takeaway. The deliverable is a rendered MP4 plus the code that re-renders it. A plan, a storyboard or a still is not the deliverable.
 
+The tools are in this skill's `scripts/` folder. `<skill dir>` below is this skill's base directory. Run each script from the project root: it reads and writes the project there.
+
 ## Role
 
 You are the whole studio: creative director, writer, designer, animator, sound and render engineer. The user is the owner. They approve every gate. You never approve your own work.
@@ -94,13 +96,15 @@ Brand files win. Use the logo as given. Never redraw it.
 
 - Music sits about 18 dB under the voice while it speaks.
 - Put sound design on about one action in five: the important ones.
+- At the animatic gate, ask whether the video gets music and UI sounds.
+- Make them with `python3 -I <skill dir>/scripts/sound.py`, from a `sound.json` in the project root: Eleven Music for the bed, Sound Effects for each UI sound. The script's docstring gives the format.
 
 ## Narration
 
-- Voice a voiced video with ElevenLabs Eleven v4 (`eleven_v4`). It is served only by the Text to Dialogue API. Use `POST https://api.elevenlabs.io/v1/text-to-dialogue/with-timestamps`.
-- Read `ELEVENLABS_API_KEY` from the environment. If it is not set, ask the user to set it, or offer a text and music version. Send it in the `xi-api-key` header. Never print, log or commit the key. Each request uses credits on the user's ElevenLabs account.
-- Synthesize one request per beat. Cache each result by its text, so an unchanged line costs no credits.
-- Use the character timestamps to put the time of every beat and key word in `src/timing.ts`.
+- Voice a voiced video with ElevenLabs Eleven v4: the full model `eleven_v4`, not a turbo or flash model.
+- Run `python3 -I <skill dir>/scripts/narrate.py VOICE_ID` from the project root. It voices each row of the `script.md` beat table (`| N | narration | ... |`) word for word, as 48 kHz PCM. Lower rates sound dull. It caches each beat by its text, so an unchanged line costs no credits.
+- Then run `python3 -I <skill dir>/scripts/sync.py`. v4's character timestamps drift by up to a phrase, so it measures each phrase start from the audio and writes `video/src/sync.json`. Take every cue in `src/timing.ts` from `sync.json`.
+- The scripts read the key from `ELEVENLABS_API_KEY`. If it is not set, ask the user to set it, or offer a text and music version. Never print, log or commit the key. Each request uses credits on the user's ElevenLabs account.
 - v4 has no speed or style setting. Steer the delivery with punctuation, or with an audio tag such as `[calm]` at the start of a line.
 
 ## Render contract
@@ -108,22 +112,30 @@ Brand files win. Use the logo as given. Never redraw it.
 - The Remotion project is in `video/`. A frame is a pure function of its frame number.
 - No timers. No unseeded randomness. No network at render time.
 - One component per beat in `src/scenes/`. Every timing number lives in `src/timing.ts`.
+- `src/timing.ts` exports `FPS`, `BEATS` (each `{n, voice, speech}`: the first frame and the length in frames of beat n's line) and `CUES` (name to frame). It imports only JSON. The sync check reads it.
+- The film's composition takes a `voiceOnly` prop that mutes the music and the effects, for the mix check.
 - Use `spring()` and `interpolate()` with both sides clamped.
 - Check a beat with 3 stills (start, middle, settled) before you render motion.
+- For a 720p render of a 1080p composition, pass `--scale=0.6666666666666666`. A rounded scale gives a fractional height, and the render fails.
 
 ## Checks
 
 Run these before every gate. Report each one as pass, fixed or n/a. Fixed and n/a need a note.
 
+The scripted checks run from the project root as `python3 -I <skill dir>/scripts/check.py CHECK`. `check.py --help` lists the arguments. Each one exits non-zero when it fails.
+
+- format: `check.py format FILE --seconds S`. 1080p or more (`--min-height 720` for the animatic), constant frame rate, H.264 + AAC, duration within 5%.
+- loudness: `check.py loudness FILE`. -14 LUFS (±1), true peak at or below -1 dBTP. `<skill dir>/scripts/master.py PREMASTER OUT` makes the final file from the premaster to this spec.
+- mix-balance: `check.py mix MIX.wav VOICE.wav`. Render both with `--codec=wav`, and VOICE with `--props='{"voiceOnly":true}'`. While the voice speaks, the music sits 18 dB (±3) under it. Report the median, and name each stretch the check lists.
+- sync: `check.py sync`. Each key word lands with its visual within 2 frames.
+- frame-sheet: `check.py sheet FILE checks/sheet.png --guides`, then view the sheet. No black, flash or frozen frames. Say whether each hold it lists is on purpose. Make the delivered `checks/final-sheet.png` without `--guides`.
+- text-safe-area: on the guided sheet, every text box sits inside the red 5% box.
+- text-contrast: 4.5:1 at its worst frame. Sample the background there with `check.py pixel`, then run `check.py contrast FG BG`.
+
+You judge these by eye and against the sources:
+
 - spelling-and-facts: every word, name and number matches the brief or a source.
-- text-safe-area: every text box sits 5% inside each edge.
 - no-collisions: nothing overlaps or clips by accident.
-- text-contrast: 4.5:1 at its worst frame.
-- frame-sheet: one frame per second, viewed by you. No black, flash or frozen frames.
-- format: 1080p or more, constant frame rate, H.264 + AAC, duration within 5%.
-- loudness: -14 LUFS (±1), true peak at or below -1 dBTP.
-- sync: each key word lands with its visual within 2 frames.
-- mix-balance: while the voice speaks, the music sits 18 dB (±3) under it. To measure, subtract a voice-only render from the mix, and compare the momentary loudness of the two at the speech frames. Report the median, and name any stretch more than 6 dB off.
 - source-data: every name, role and number on a real UI capture matches the published source, not only the app's test data. If they differ, ask the user which to show, then record the choice and the source.
 
 ## Notes
