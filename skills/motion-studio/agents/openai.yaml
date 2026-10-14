@@ -1,0 +1,5 @@
+interface:
+  display_name: "Motion Studio"
+  short_description: "Gated Remotion motion design video"
+policy:
+  allow_implicit_invocation: false
