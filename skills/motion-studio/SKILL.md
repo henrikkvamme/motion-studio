@@ -57,6 +57,13 @@ Work in this order. Stop at every gate marked [Owner], show the work, and wait f
 
 Approved work is frozen. The approved script is used word for word. The approved frames fix the look. The approved animatic fixes the timing.
 
+## Story
+
+- The strongest picture is in the first 3 seconds. Do not open on a logo that fades in on black, or on a title card.
+- The video works with the sound off. Each key fact is also on screen as text, also in a voiced video.
+- A product or launch video is 30 to 60 seconds and shows 2 or 3 product moments. Each moment has one action that the viewer sees happen. Use more than 60 seconds only to explain a subject.
+- Close the loop: the last shot shows the first picture again, changed.
+
 ## Look
 
 Write `design/LOOK.md` before you draw anything.
@@ -83,6 +90,7 @@ Brand files win. Use the logo as given. Never redraw it.
 - Script: about 150 spoken words per minute, within 10% of the target length.
 - Read time: text stays words / 3 + 1 seconds after it lands.
 - Let the key idea sit still for a beat. Constant motion is noise.
+- Motion is fast and eased: an entrance takes 0.3 to 0.8 seconds. A slow entrance reads as a slow product.
 
 ## Motion
 
@@ -110,12 +118,16 @@ Brand files win. Use the logo as given. Never redraw it.
 ## Render contract
 
 - The Remotion project is in `video/`. A frame is a pure function of its frame number.
+- Install Remotion's own agent skills in the project with `npx skills add remotion-dev/skills` and follow them for the API. Since version 2.0 (17 August 2026) they hold no design guidance: the Look, Layout and Motion sections here are the design source.
+- Remotion is free for a person and a small team. A larger company needs a paid licence. When the video is for a company, tell the user at the brief gate.
+- Work in the Remotion preview while you build, and name a frame range when you change a part ("frames 120 to 180 of beat 3"). Render only for a gate.
 - No timers. No unseeded randomness. No network at render time.
 - One component per beat in `src/scenes/`. Every timing number lives in `src/timing.ts`.
 - `src/timing.ts` exports `FPS`, `BEATS` (each `{n, voice, speech}`: the first frame and the length in frames of beat n's line) and `CUES` (name to frame). It imports only JSON. The sync check reads it.
 - The film's composition takes a `voiceOnly` prop that mutes the music and the effects, for the mix check.
 - Use `spring()` and `interpolate()` with both sides clamped.
 - Check a beat with 3 stills (start, middle, settled) before you render motion.
+- Encode the final with H.264 at CRF 15 to 18. A higher CRF shows bands in dark gradients.
 - For a 720p render of a 1080p composition, pass `--scale=0.6666666666666666`. A rounded scale gives a fractional height, and the render fails.
 
 ## Checks
